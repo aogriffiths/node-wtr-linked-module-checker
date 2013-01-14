@@ -1,0 +1,22 @@
+{
+  "name": "linked-module-checker",
+  "description": "A simple way to check for linked modules",
+  "version": "0.0.1",
+  "homepage": "https://github.com/aogriffiths/node-wtr-linked-module-checker",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/dominictarr/aogriffiths/node-wtr-linked-module-checker.git"
+  },
+  "author": {
+    "name": "Adam Griffiths"
+  },
+  "bin": {
+    "express": "./bin/lmc"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  }
+}
