@@ -1,7 +1,9 @@
-node-wtr-linked-module-checker
-==============================
+LMC
+===
 
-lmc - A little tool to check for linked modules in your node_moudles directory.
+A tool that checks for linked modules in your node_moudles directory and more. 
+Useful if you  are growing your node project, with or without and other [node water](https://github.com/aogriffiths/node-wtr).
+
 
 Help
 ----
