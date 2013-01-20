@@ -1,0 +1,558 @@
+#!/usr/bin/env node
+
+/**
+ * @Author Adam Griffiths
+ * @description A simple tool to check for linked modules in your node_moudles
+ *              directory.
+ */
+
+var __verbose__ = false;
+var __debug__ = false;
+
+var path    = require("path");
+var fs      = require("fs");
+var pkg     = require('../package.json');
+var program = require('commander');
+var async   = require("async");
+var exec    = require('child_process').exec;
+
+var SNAPSHOTFILENAME = '.lmc-snapshot';
+
+var toArray = function (enu) {
+  var arr = [];
+
+  for (var i = 0, l = enu.length; i < l; i++)
+    arr.push(enu[i]);
+
+  return arr;
+};
+
+var pad  = function(str, len, padder){
+  padder = padder || ' ';
+  return str + (new Array(1 + len - str.length).join(padder));          
+}
+
+function say(){
+  var args = toArray(arguments).slice(0);
+  console.log.apply(console,args);
+}
+
+function debug(arg){
+  if(__debug__){
+    var args = toArray(arguments).slice(0);
+    console.log.apply(console,args);
+  }
+}
+
+function verbose(arg){
+  if(__verbose__){
+    var args = toArray(arguments).slice(0);
+    console.log.apply(console,args);
+  }
+}
+
+
+
+var series2 = function (tasks, callback) {
+  callback = callback || function () {};
+  if (tasks.constructor === Array) {
+      async.mapSeries(tasks, function (fn, callback) {
+          if (fn) {
+              fn(function (err) {
+                  var args = Array.prototype.slice.call(arguments, 1);
+                  if (args.length <= 1) {
+                      args = args[0];
+                  }
+                  callback.call(null, err, args);
+              });
+          }
+      }, callback);
+  }
+  else {
+      var results = {};
+      async.forEachSeries(_keys(tasks), function (k, callback) {
+          tasks[k](function (err) {
+              var args = Array.prototype.slice.call(arguments, 1);
+              if (args.length <= 1) {
+                  args = args[0];
+              }
+              results[k] = args;
+              callback(err);
+          });
+      }, function (err) {
+          callback(err, results);
+      });
+  }
+};
+
+function readSnapshotFile(callback){
+  fs.readFile(SNAPSHOTFILENAME, 'utf8', function (err, data) {
+    callback(err, data);
+  });
+}
+
+// guess name (same logic as commander uses to guess the name)
+var name = path.basename(process.argv[1]);
+
+program
+  .version(pkg.version)
+  .option('-s, --snapshot',     'snapshot the modules that are currently linked to.')
+  .option('-i, --install',      '`npm install` modules that are currently linked to.')
+  .option('-l, --link',         '`npm link` modules listed in the snapshot.')
+  .option('-d, --dryrun',       'do a dry run - not changing and files for real.')
+  .option('-g, --git',          'check the git status of modules (i.e. are they staged to be commited?)')
+  .option('-e, --erroronlinks', 'exit with a n error code of 1 if linked modules are found.')
+  .option('-v, --verbose',      'output verbose information')
+  .option('--debug',            'output debug information (even more than verbose)');
+
+program.on('--help', function(){
+  var msg = [];
+  msg.push('  Examples:');
+  msg.push('');
+  msg.push('    $ ' + name + ' -si    snapshot linked modules and switch them to be installed');
+  msg.push('    $ ' + name + ' -l     switch modules in the snapshot to be linked');
+  msg.push('');
+  msg.push('  Invalid Combinations:');
+  msg.push('');
+  msg.push('    -sl Why would you snapshot the links then relink them? Effectively a no-op.');
+  console.log(msg.join("\n"));
+});
+
+program
+  .parse(process.argv);
+
+__debug__ = program.debug;
+__verbose__ = program.verbose;
+
+function targetOfSymlink(path, callback){
+  fs.lstat(path, function(err, stats){
+    if(err){
+      //debug('targetOfSymlink err ' + path);
+      callback(err,'');
+    }else{
+      if(stats.isSymbolicLink()){
+        //debug('targetOfSymlink symlink ' + path);
+        targetOfSymlink2(path, callback);
+      }else{
+        //debug('targetOfSymlink not symlink ' + path);
+        callback(null, path)
+      }
+    }
+  });
+}
+
+function targetOfSymlink2(path, callback){
+  fs.readlink(path, function(err, linkString){
+    if(err){
+      //debug('targetOfSymlink2 err');
+      callback(err,'');
+    }else{      
+      //debug('targetOfSymlink2 link');
+      targetOfSymlink(linkString, callback);
+    }
+  });
+}
+
+var NODE_MODULES = 'node_modules'
+var cwd = process.cwd();
+var nm = path.join(cwd,NODE_MODULES);
+var ss = path.join(cwd, SNAPSHOTFILENAME);
+
+
+function listAllAndOptionallySnapshot(node_module_dirs, callback){ 
+  var i = 0;
+  //reduce(arr, memo, iterator, callback)
+  async.reduce([
+    function(callback, memo){
+      //debug('>1 currentSnapshot');
+      readSnapshotFile(function(err,data){
+        memo.snapshotModules = data;
+        callback(err, memo);
+      });
+    },
+    function(callback, memo){
+      //debug('>2 wipeSnapshot');
+      if(program.snapshot){
+        fs.writeFile(SNAPSHOTFILENAME, '', 'utf8', function(err){
+          memo.wipedSnapshot = true;
+          callback(err, memo);
+        });      
+      }else{
+        memo.wipedSnapshot = false;
+        callback(null, memo);
+      }
+    },
+    //list modules from directories
+    function(callback, memo){
+      //debug('>3 currentModules');
+      async.map(node_module_dirs, function(node_module_dir, callback){
+        var node_module_path = path.join(nm, node_module_dir);
+        callback(null,{name:node_module_dir, path:node_module_path});
+      }, function(err,data){
+        memo.modules = data;
+        callback(err, memo);
+      })
+    },
+    //stat modules from directories
+    function(callback, memo){
+      //debug('>4 allModules');
+      async.map(memo.modules, function(module, callback){
+        fs.lstat(module.path, function(err, data){
+          module.linked    = data.isSymbolicLink();
+          module.installed = !data.isSymbolicLink();
+          callback(null, module);
+        })
+      }, function(err,data){
+        memo.modules = data;
+        callback(err, memo);
+      })
+    },
+    //git status
+    function(callback, memo){
+      //debug('>4 allModules');
+      if(program.git){
+        getGitStagedModules(function(err, gitcahced){
+          if(err){
+            callback(err,memo)            
+          }else{
+            var modules = memo.modules.slice(0);
+            modules.forEach(function(module){
+              if(gitcahced[module.name]){
+                module.inGitCache = true;                
+              }else{
+                module.inGitCache = false;          
+              }
+            })
+            callback(null,memo)
+          }
+        })
+      }else{
+        callback(null,memo);
+      }
+    },    
+    //merge
+    function(callback, memo){
+      var ssModules = memo.snapshotModules.slice(0);
+      var modules = memo.modules.slice(0);
+      while(ssModules.length > 0){
+        var ssModule = ssModules.pop();
+        debug('poped', ssModule);
+        var found = false;
+        modules.forEach(function(module){
+          if(module.name === ssModule.name){
+            found = true;
+            module.inSnapshot = true;
+          }
+        })
+        if(!found){
+          ssModule.inSnapshot = true;
+          ssModule.linked = false;
+          ssModule.installed = false;
+          modules.push(ssModule);
+        }
+      }
+      //delete memo.snapshotModules;
+      memo.modules = modules;
+      callback(null, memo);
+    },
+    //expand the data on each module
+    function(callback, memo){
+      debug('HERE');
+      async.map(memo.modules, function(module, callback){
+        debug('B');
+        module.currentState = module.inSnapshot  ? 'S' : '';
+        module.currentState+= module.linked      ? 'L' : '';
+        module.currentState+= module.installed   ? 'I' : '';
+        module.currentState+= module.inGitCache  ? 'G' : '';
+
+        module.toSnapshot   = (module.linked    && (program.snapshot != undefined));
+        module.toLink       = (module.installed && (program.link != undefined));
+        module.toInstall    = (module.linked    && (program.install != undefined));
+        
+        module.futureState  =  module.toSnapshot ? 'S' : '';
+        module.futureState +=  module.toLink     ? 'L' : '';
+        module.futureState +=  module.toInstall  ? 'I' : '';
+        callback(null, module);
+      }, function(err, data){
+        debug('C');
+        memo.modules = data;
+        callback(err, memo);
+      })     
+    },    
+    //filter for the linked linkedModules
+    function(callback, memo){
+      //debug('>5 linkedModules');
+      async.filter(memo.modules, function(module, callback2){
+        callback2(module.linked);
+      }, function(data){
+        memo.linkedModules = data;
+        callback(null, memo)
+      })
+    },
+    //add target information to linked modules
+    function(callback, memo){
+      //debug('>6 linkTargets');
+      async.map(memo.linkedModules, function(module, callback){        
+        targetOfSymlink(module.path, function(err,data){
+          module.target = data;
+          callback(null, module);
+        });        
+      }, function(data){
+        //delete memo.linkedModules
+        callback(null, memo)
+      })
+    },
+    //print the list
+    function(callback, memo){
+      //debug('>7 list');
+      async.map(memo.modules, function(module, callback){        
+        say(' ' + pad(module.currentState,3) +  '=>' + pad(module.futureState,3)  + ' ' + module.name + ':' + module.path);
+        callback(null, module);
+      }, function(data){
+        //delete memo.linkedModules
+        callback(null, memo)
+      })      
+    },
+    //do the snapshot
+    function(callback, memo){
+      //debug('>11 snapshotDone');
+      if(program.snapshot && !program.dryrun){
+        async.filter(memo.modules, function(module, callback2){
+          callback2(module.toSnapshot);
+        }, function(data){
+          async.reduce(data, false, snapshot, function(err,data){
+            callback(err, memo)
+          });
+        })                
+      }else{
+        callback(null,memo);
+      }
+    },
+    //do the error on links
+    function(callback, memo){
+      //debug('>11 snapshotDone');
+      if(program.erroronlinks){
+        async.filter(memo.modules, function(module, callback2){
+          callback2(module.linked);
+        }, function(data){
+          if(data.length > 0){
+            callback("Liniked modules exist. Try npm install <module>", null)
+          }else{
+            callback(null,memo);            
+          };
+        })                
+      }else{
+        callback(null,memo);
+      }
+    },
+    //do the links
+    function(callback, memo){
+      //debug('>11 snapshotDone');
+      if(program.link && !program.dryrun){
+        async.filter(memo.modules, function(module, callback2){
+          callback2(module.toLink);
+        }, function(data){
+          async.reduce(data, false, link, function(err,data){
+            callback(err, memo)
+          });
+        })                
+      }else{
+        callback(null,memo);
+      }
+    },
+    //do the install
+    function(callback, memo){
+      if(program.install && !program.dryrun){
+        async.filter(memo.modules, function(module, callback2){
+          callback2(module.toInstall);
+        }, function(data){
+          async.reduce(data, false, install, function(err,data){
+            callback(err, memo)
+          });
+        })                
+      }else{
+        callback(null,memo);
+      }
+    }
+
+  ], 
+  //the memo
+  {},
+  //the iterator
+  function(memo, fn, callback){
+    fn(function(err,data){
+      debug('ITERATION ' + i++, err, data);
+      callback(err, data);
+    }, memo);
+  },
+  //the callback
+  function(err, memo){
+    debug('l&oss data: ', memo);
+    debug('l&oss err: ', err);
+    callback(err,memo);
+  });
+}  
+
+
+function snapshot(done, module, callback){ 
+  debug('appending to file');  
+  fs.appendFile(SNAPSHOTFILENAME, module.name + ':' + module.target + "\n", 'utf8', function(err,data){
+    callback(err, true);
+  });
+}
+
+function link(done, module, callback){ 
+  say('linking',module.name); 
+  callback(null,true);
+}
+
+function install(done, module, callback){ 
+  say('install',module.name);  
+  callback(null,true);
+}
+
+// readSnapshotFile ----------------------------------------
+function readSnapshotFile(callback){ 
+  async.auto({
+    readFile: readSnapshotFile,
+    trim:       ['readFile', function(callback, results){
+      debug('results.readFile', results.readFile);
+      callback(null, results.readFile.trim());
+    }],
+    splitRows:  ['trim', function(callback, results){
+      debug('results.trim', results.trim);
+      callback(null,results.trim ? results.trim.split("\n") : []);
+    }],
+    splitLines: ['splitRows', function(callback, results){
+      debug('results.splitRows', results.splitRows);
+      async.map(results.splitRows, function(row, callback){
+        var data = row.split(':');
+        callback(null,{name:data[0],path:data[1]});
+      }, callback)
+    }]
+  }, //callback);
+  function(err,data){
+    debug('data.splitLines', data.splitLines);
+    if(err || !data){
+      callback(null,[]);
+    }else{
+      callback(err, data.splitLines);
+    }
+  });
+}
+
+//getGitStagedModules ----------------------------------------
+function getGitStagedModules(callback){ 
+  async.auto({
+    raw: function(callback){
+      var git_cmd = 'git diff --name-only --cached';
+      verbose1('Using "' + git_cmd + '" to find files in git cahce.');
+      exec('git diff --name-only --cached', function (error, stdout, stderr) {
+        if (error !== null) {
+          say(stderr);
+        }
+        verbose(stdout);
+        callback(error, stdout);
+      });
+    },
+    trim:       ['raw',function(callback, results){
+      callback(null, results.raw.trim());
+    }],
+    splitRows:  ['trim', function(callback, results){
+      callback(null, results.trim ? results.trim.split("\n") : []);
+    }],
+    splitPaths: ['splitRows', function(callback, results){
+      async.map(results.splitRows, function(row, callback){
+        var data = row.split('/');
+        callback(null,data);
+      }, callback)
+    }],
+    moduleNames: ['splitPaths', function(callback, results){
+      moduleNames ={};
+      results.splitPaths.forEach(function(patharray1){        
+        var modulename = null;
+        var previousfile = null;
+        var patharray = patharray1.slice(0);
+        while((patharray.length > 0) && ! modulename){
+          var file = patharray.shift();
+          if(previousfile === NODE_MODULES){
+            modulename = file;
+          }else{
+            previousfile = file;
+          }
+        }
+        if(modulename){
+          moduleNames[modulename]=true;
+        }
+      })
+      debug('git moduleNames', moduleNames);
+      callback(null,moduleNames);
+    }]
+  }, //callback);
+  function(err,data){
+    if(err || !data){
+      callback(null,[]);
+    }else{
+      callback(err, data.moduleNames);
+    }
+  });
+}
+
+//MAIN PROGRAM
+async.auto({
+  //check node_modules exists
+  nm_exists: function(callback){
+    fs.exists(nm, function(exists){
+      if(exists){
+        callback(null, true);
+      }else{
+        callback(nm + ' not found in current directory!', null);        
+      }
+    });
+  },
+  //read the node_modules directory for subdirectories
+  node_module_dirs: ['nm_exists', function(callback,results){
+    //here we can assume results.nm_exists = true (would have thrown an error otherwise)
+    say('node_modules found! The following modules are currently linked:'); 
+    fs.readdir(nm, callback);
+  }],
+  //list and (if the snapshot switch was given) snapshot the linked modules.
+  listSnapshot: ['node_module_dirs', function(callback, results){
+    listAllAndOptionallySnapshot(results.node_module_dirs, function(err, data){
+      
+      if(!err && data.snapshotDone){
+        say('Created snapshot in file: ' + SNAPSHOTFILENAME);          
+      }
+      callback(err, data);
+    });
+  }]
+  
+  },function(err, results) {
+    if(err){
+      say('Error: ', err);
+      say('Exiting (1)');
+      process.exit(1);
+    }    
+  }
+)
+
+
+
+async.auto({
+        get_data: function(callback){
+            // async code to get some data
+        },
+        make_folder: function(callback){
+            // async code to create a directory to store a file in
+            // this is run at the same time as getting the data
+        },
+        write_file: ['get_data', 'make_folder', function(callback){
+            // once there is some data and the directory exists,
+            // write the data to a file in the directory
+            callback(null, filename);
+        }],
+        email_link: ['write_file', function(callback, results){
+            // once the file is written let's email a link to it...
+            // results.write_file contains the filename returned by write_file.
+        }]
+    });

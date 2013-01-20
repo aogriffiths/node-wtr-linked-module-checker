@@ -1,6 +1,6 @@
 {
   "name": "linked-module-checker",
-  "description": "A simple way to check for linked modules",
+  "description": "A simple tool to check for linked modules in your node_moudles directory.",
   "version": "0.0.1",
   "homepage": "https://github.com/aogriffiths/node-wtr-linked-module-checker",
   "repository": {
@@ -11,7 +11,7 @@
     "name": "Adam Griffiths"
   },
   "bin": {
-    "express": "./bin/lmc"
+    "lmc": "./bin/lmc"
   },
   "dependencies": {},
   "devDependencies": {},
