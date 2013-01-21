@@ -2,8 +2,10 @@
 
 /**
  * @Author Adam Griffiths
- * @description A simple tool to check for linked modules in your node_moudles
- *              directory.
+ * @description [Node water](https://github.com/aogriffiths/node-wtr) to help node.js module development flow more freely.
+ * 
+ * Credits:
+ * Isaac Z. Schlueter - https://github.com/isaacs/npm
  */
 
 var __verbose__ = false;

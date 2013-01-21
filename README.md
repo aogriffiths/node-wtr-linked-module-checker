@@ -55,3 +55,8 @@ Add this to you git pre-commit:
 
     `lmc -e`
 
+Credits
+=======
+
+* Isaac Z. Schlueter - https://github.com/isaacs/npm
+
