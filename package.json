@@ -2,7 +2,7 @@
   "name": "linked-module-checker",
   "description": "Help node.js module development flow more freely",
   "keywords": ["water","link", "modules", "node_modules"],
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "node": "*"
   },
@@ -13,7 +13,7 @@
   "homepage": "https://github.com/aogriffiths/node-wtr-linked-module-checker",
   "repository": {
     "type": "git",
-    "url": "git://github.com/dominictarr/aogriffiths/node-wtr-linked-module-checker.git"
+    "url": "git://github.com/aogriffiths/node-wtr-linked-module-checker.git"
   },
   "bin": {
     "lmc": "./bin/lmc"
