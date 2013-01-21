@@ -1,22 +1,24 @@
 {
   "name": "linked-module-checker",
-  "description": "A simple tool to check for linked modules in your node_moudles directory.",
-  "version": "0.0.1",
+  "description": "Help node.js module development flow more freely",
+  "keywords": ["water","link", "modules", "node_modules"],
+  "version": "0.0.2",
+  "engines": {
+    "node": "*"
+  },
+  "author": {
+    "name": "Adam Griffiths",
+    "url": "https://github.com/aogriffiths"
+  },
   "homepage": "https://github.com/aogriffiths/node-wtr-linked-module-checker",
   "repository": {
     "type": "git",
     "url": "git://github.com/dominictarr/aogriffiths/node-wtr-linked-module-checker.git"
-  },
-  "author": {
-    "name": "Adam Griffiths"
   },
   "bin": {
     "lmc": "./bin/lmc"
   },
   "dependencies": {},
   "devDependencies": {},
-  "optionalDependencies": {},
-  "engines": {
-    "node": "*"
-  }
+  "optionalDependencies": {}
 }
