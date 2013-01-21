@@ -4,8 +4,8 @@
  * @Author Adam Griffiths
  * @description [Node water](https://github.com/aogriffiths/node-wtr) to
  *              help node.js module development flow more freely.
- *              [github.com](https://github.com/aogriffiths/node-wtr-linked-module-checker)
- *              [npmjs.org](https://npmjs.org/package/linked-module-checker)
+ *              On [github.com](https://github.com/aogriffiths/node-wtr-linked-module-checker)
+ *              On [npmjs.org](https://npmjs.org/package/linked-module-checker)
  * 
  * Credits: Isaac Z. Schlueter - https://github.com/isaacs/npm
  */

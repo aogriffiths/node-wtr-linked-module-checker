@@ -8,8 +8,8 @@
 Part of the [Node Water](https://github.com/aogriffiths/node-wtr) collection. 
 
 * __linked-module-checker__ - Help node.js module development flow more freely.
-    * [github.com](https://github.com/aogriffiths/node-wtr-linked-module-checker)
-    * [npmjs.org](https://npmjs.org/package/linked-module-checker)
+    * On [github.com](https://github.com/aogriffiths/node-wtr-linked-module-checker)
+    * On [npmjs.org](https://npmjs.org/package/linked-module-checker)
 
 Useful if you are growing your node project, with or without any other node water.
 
@@ -42,6 +42,19 @@ version to make your project run at all.
 
 lmc helps you avoid these problems.
 
+Installation
+------------
+
+Official releases can be obtained from:
+* __github.com__ - the [tags section](https://github.com/aogriffiths/node-wtr-linked-module-checker/tags) 
+                   provides links to zip or tar.gz packages. 
+* __npm__        - use `npm install -g linked-module-checker`
+
+The lastest developed code may node have not have been released, but can always be found
+from:
+* __github.com__ - the [project homepage](https://github.com/aogriffiths/node-wtr-linked-module-checker)
+                   provides links to all the source code, branches and issue tracking.
+                   
 Help
 ----
 See the output of lmc --help
