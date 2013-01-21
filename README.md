@@ -6,14 +6,11 @@
 ((,(,' ((_( (( (('(|             n             \|/            |                |
 ```
 
-Linked Module Checker
-=====================
+* __linked-module-checker__ - Help node.js module development flow more freely.
+    * [linked-module-checker](https://github.com/aogriffiths/node-wtr-linked-module-checker)
+    * [npmjs.org](https://npmjs.org/package/linked-module-checker)
 
-Preamble
---------
-
-[Node water](https://github.com/aogriffiths/node-wtr) to help node.js module development flow
-more freely. Useful if you are growing your node project, with or without any other node water.
+Useful if you are growing your node project, with or without any other node water.
 
 So What Does it Do?!
 --------------------
