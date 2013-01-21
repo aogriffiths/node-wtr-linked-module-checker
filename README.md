@@ -12,7 +12,7 @@ Linked Module Checker
 Preamble
 --------
 
-[Node water](https://github.com/aogriffiths/node-wtr) for helping your module development flow
+[Node water](https://github.com/aogriffiths/node-wtr) to help node.js module development flow
 more freely. Useful if you are growing your node project, with or without any other node water.
 
 So What Does it Do?!
