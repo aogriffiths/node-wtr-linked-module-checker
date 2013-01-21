@@ -7,7 +7,7 @@
 ```
 
 * __linked-module-checker__ - Help node.js module development flow more freely.
-    * [linked-module-checker](https://github.com/aogriffiths/node-wtr-linked-module-checker)
+    * [github.com](https://github.com/aogriffiths/node-wtr-linked-module-checker)
     * [npmjs.org](https://npmjs.org/package/linked-module-checker)
 
 Useful if you are growing your node project, with or without any other node water.

@@ -2,10 +2,12 @@
 
 /**
  * @Author Adam Griffiths
- * @description [Node water](https://github.com/aogriffiths/node-wtr) to help node.js module development flow more freely.
+ * @description [Node water](https://github.com/aogriffiths/node-wtr) to
+ *              help node.js module development flow more freely.
+ *              [github.com](https://github.com/aogriffiths/node-wtr-linked-module-checker)
+ *              [npmjs.org](https://npmjs.org/package/linked-module-checker)
  * 
- * Credits:
- * Isaac Z. Schlueter - https://github.com/isaacs/npm
+ * Credits: Isaac Z. Schlueter - https://github.com/isaacs/npm
  */
 
 var __verbose__ = false;
